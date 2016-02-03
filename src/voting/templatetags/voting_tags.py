@@ -4,6 +4,8 @@ from __future__ import unicode_literals
 
 from django import template
 from django.utils.html import escape
+from django.contrib.contenttypes.models import ContentType
+from django.core.urlresolvers import reverse
 
 from voting.models import Vote
 
@@ -86,6 +88,20 @@ class DictEntryForItemNode(template.Node):
             return ''
         context[self.context_var] = dictionary.get(item.id, None)
         return ''
+
+
+class VoteUrl(template.Node):
+    def __init__(self, object, direction):
+        self.object = object
+        self.direction = direction
+
+    def render(self, context):
+        object_instance = template.resolve_variable(self.object, context)
+        content_type = ContentType.objects.get_for_model(object_instance).model
+        return reverse('voting_vote', kwargs={
+            'app_label': object_instance._meta.app_label,
+            'model_name': content_type, 'direction': self.direction,
+            'object_id': object_instance.pk})
 
 
 def do_score_for_object(parser, token):
@@ -187,11 +203,21 @@ def do_dict_entry_for_item(parser, token):
         raise template.TemplateSyntaxError("fourth argument to '%s' tag must be 'as'" % bits[0])
     return DictEntryForItemNode(bits[1], bits[3], bits[5])
 
+
+def vote_url(parser, token):
+    bits = token.split_contents()
+    if len(bits) != 3:
+        raise TemplateSyntaxError("Accepted format "
+                                  "{% vote_url [object] [up|down|clear] %}")
+    else:
+        return VoteUrl(bits[1], bits[2])
+
 register.tag('score_for_object', do_score_for_object)
 register.tag('scores_for_objects', do_scores_for_objects)
 register.tag('vote_by_user', do_vote_by_user)
 register.tag('votes_by_user', do_votes_by_user)
 register.tag('dict_entry_for_item', do_dict_entry_for_item)
+register.tag(vote_url)
 
 
 # Simple Tags
