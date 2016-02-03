@@ -70,7 +70,7 @@ def vote_on_object(request, model, direction, post_vote_redirect=None,
         raise Http404('No %s found for %s.' %
                       (model._meta.app_label, lookup_kwargs))
 
-    if request.method == 'POST':
+    if True:
         if post_vote_redirect is not None:
             next = post_vote_redirect
         elif 'next' in request.POST:
